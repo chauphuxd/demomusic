@@ -207,6 +207,8 @@ header h2 {
     font-family: "Poppins", sans-serif;
     font-size: 14px;
     color: #333;
+    position: sticky;
+    top: 0;
 }
 
 #artist-select:hover {

@@ -20,7 +20,8 @@
 
     <body>
         <select id="artist-select">
-            <option value="all">All Artists</option>
+            <option value="choose">Choose Artists</option>
+            <option value="all artists">All Artists</option>
             <option value="HIEUTHUHAI">HIEUTHUHAI</option>
             <option value="Vũ Cát Tường">Vũ Cát Tường</option>
             <option value="Wren Evans">Wren Evans</option>
@@ -85,7 +86,7 @@
             </div>
 
             <!-- Playlist -->
-            <div class="playlist"></div>
+            <div class="playlist" id="playlist"></div>
         </div>
 
         <!-- Design from: https://static.collectui.com/shots/3671744/musicloud-revolutionary-app-for-music-streaming-large -->
@@ -123,7 +124,7 @@
             const randomBtn = $(".btn-random");
             const repeatBtn = $(".btn-repeat");
             const playlist = $(".playlist");
-
+            const artistSelect = $("#artist-select");
             // App
             const app = {
                 currentIndex: 0,
@@ -513,6 +514,12 @@
                         path: "./assets/music/haytraochoanh.mp3",
                         image: "./assets/img/haytraochoanh.jpg",
                     },
+                    {
+                        name: "Chúng Ta Của Tương Lai",
+                        singer: "Sơn Tùng MTP",
+                        path: "./assets/music/chungtacuatuonglai.mp3",
+                        image: "./assets/img/chungtacuatuonglai.jpeg",
+                    },
                 ],
 
                 render: function () {
@@ -552,18 +559,30 @@
                 handleEvents: function () {
                     const _this = this;
                     const cdWidth = cd.offsetWidth;
-                    const artistSelect = $("#artist-select");
+
+                    const songsByArtist = {};
+
+                    app.songs.forEach((song) => {
+                        if (!songsByArtist[song.singer]) {
+                            songsByArtist[song.singer] = [];
+                        }
+                        songsByArtist[song.singer].push(song);
+                    });
+
                     artistSelect.addEventListener("change", function () {
                         const selectedArtist = this.value;
-                        const filteredSongs = app.songs.filter(
-                            (song) =>
-                                song.singer === selectedArtist ||
-                                selectedArtist === "all"
-                        );
+                        let filteredSongs = [];
+                        if (selectedArtist === "all artists") {
+                            // Nếu người dùng chọn "All Artists", hiển thị tất cả các bài hát
+                            filteredSongs = app.songs;
+                        } else {
+                            // Nếu người dùng chọn một ca sĩ cụ thể, hiển thị các bài hát của ca sĩ đó
+                            filteredSongs = songsByArtist[selectedArtist];
+                        }
                         app.songs = filteredSongs;
-                        app.currentIndex = 0; // Đặt lại chỉ số hiện tại về 0 để phát bài hát đầu tiên của danh sách mới
-                        app.render(); // Hiển thị lại danh sách bài hát trên giao diện
-                        app.loadCurrentSong(); // Tải bài hát đầu tiên của danh sách mới
+                        app.currentIndex = 0;
+                        app.render();
+                        app.loadCurrentSong();
                     });
 
                     // Đánh dấu đã gắn sự kiện để tránh gắn lại trong các lần render sau
