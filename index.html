@@ -16,31 +16,29 @@
             rel="stylesheet"
         />
         <link rel="stylesheet" href="./assets/css/style.css" />
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     </head>
 
     <body>
-        <select id="artist-select">
-            <option value="choose">Choose Artists</option>
-            <option value="all artists">
-                All Artists(Hiển thị tất cả thì f5 lại trang nha, cái này tui
-                chưa fix >.<)
-            </option>
-            <option value="HIEUTHUHAI">HIEUTHUHAI</option>
-            <option value="Vũ Cát Tường">Vũ Cát Tường</option>
-            <option value="Wren Evans">Wren Evans</option>
-            <option value="MCK">MCK</option>
-            <option value="Ronboogz">Ronboogz</option>
-            <option value="Obito">Obito</option>
-            <option value="Winno">Winno</option>
-            <option value="DaLAB">Dalab</option>
-            <option value="GREYD">GREYD</option>
-            <option value="Sơn Tùng MTP">Sơn Tùng MTP</option>
-        </select>
         <div class="player">
             <!-- Dashboard -->
             <div class="dashboard">
                 <!-- Header -->
                 <header>
+                    <select id="artist-select">
+                        <option value="choose">Choose Artists</option>
+                        <option value="all artists">All Artists</option>
+                        <option value="HIEUTHUHAI">HIEUTHUHAI</option>
+                        <option value="Vũ Cát Tường">Vũ Cát Tường</option>
+                        <option value="Wren Evans">Wren Evans</option>
+                        <option value="MCK">MCK</option>
+                        <option value="Ronboogz">Ronboogz</option>
+                        <option value="Obito">Obito</option>
+                        <option value="Winno">Winno</option>
+                        <option value="DaLAB">Dalab</option>
+                        <option value="GREYD">GREYD</option>
+                        <option value="Sơn Tùng MTP">Sơn Tùng MTP</option>
+                    </select>
                     <h4>Now playing:</h4>
                     <h2>String 57th & 9th</h2>
                 </header>
@@ -86,6 +84,8 @@
                 />
 
                 <audio id="audio" src=""></audio>
+
+                <button id="backToTopBtn" title="Lên đầu trang">↑</button>
             </div>
 
             <!-- Playlist -->
@@ -134,6 +134,7 @@
                 isPlaying: false,
                 isRandom: false,
                 isRepeat: false,
+                originalSongs: [],
                 config:
                     JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {},
 
@@ -528,24 +529,24 @@
                 render: function () {
                     const htmls = this.songs.map((song, index) => {
                         return `
-                  <div class="song ${
-                      index === this.currentIndex ? "active" : ""
-                  }" data-index="${index}">
-                    <div
-                      class="thumb"
-                      style="
-                        background-image: url('${song.image}');
-                      "
-                    ></div>
-                    <div class="body">
-                      <h3 class="title">${song.name}</h3>
-                      <p class="author">${song.singer}</p>
-                    </div>
-                    <div class="option">
-                      <i class="fas fa-ellipsis-h"></i>
-                    </div>
-                  </div>
-            `;
+                          <div class="song ${
+                              index === this.currentIndex ? "active" : ""
+                          }" data-index="${index}">
+                            <div
+                              class="thumb"
+                              style="
+                                background-image: url('${song.image}');
+                              "
+                            ></div>
+                            <div class="body">
+                              <h3 class="title">${song.name}</h3>
+                              <p class="author">${song.singer}</p>
+                            </div>
+                            <div class="option">
+                              <i class="fas fa-ellipsis-h"></i>
+                            </div>
+                          </div>
+                    `;
                     });
                     playlist.innerHTML = htmls.join("");
                     // window.scrollTo({ top: 0, behavior: "smooth" });
@@ -572,23 +573,89 @@
                         songsByArtist[song.singer].push(song);
                     });
 
+                    // Lưu trữ danh sách bài hát gốc vào biến originalSongs
+                    this.originalSongs = [...this.songs];
+
                     artistSelect.addEventListener("change", function () {
                         const selectedArtist = this.value;
-                        let filteredSongs = [];
                         if (selectedArtist === "all artists") {
-                            // Nếu người dùng chọn "All Artists", hiển thị tất cả các bài hát
-                            filteredSongs = app.songs;
+                            // Hiển thị tất cả các bài hát
+                            _this.songs = _this.originalSongs;
                         } else {
-                            // Nếu người dùng chọn một ca sĩ cụ thể, hiển thị các bài hát của ca sĩ đó
-                            filteredSongs = songsByArtist[selectedArtist];
+                            // Hiển thị các bài hát của nghệ sĩ được chọn
+                            _this.songs = _this.originalSongs.filter(
+                                (song) => song.singer === selectedArtist
+                            );
                         }
-                        app.songs = filteredSongs;
-                        app.currentIndex = 0;
-                        app.render();
-                        app.loadCurrentSong();
+                        _this.currentIndex = 0;
+                        _this.render();
+                        _this.loadCurrentSong();
                     });
 
-                    // Đánh dấu đã gắn sự kiện để tránh gắn lại trong các lần render sau
+                    let backToTopBtn = document.getElementById("backToTopBtn");
+
+                    // Khi người dùng cuộn xuống 20px từ đầu tài liệu, hiển thị nút
+                    window.onscroll = function () {
+                        scrollFunction();
+                    };
+
+                    function scrollFunction() {
+                        if (
+                            document.body.scrollTop > 20 ||
+                            document.documentElement.scrollTop > 20
+                        ) {
+                            backToTopBtn.classList.add("show");
+                        } else {
+                            backToTopBtn.classList.remove("show");
+                        }
+                    }
+
+                    // Khởi tạo SortableJS
+                    new Sortable(playlist, {
+                        animation: 150,
+                        onEnd: function (evt) {
+                            // Cập nhật lại vị trí bài hát trong danh sách
+                            const itemEl = evt.item; // phần tử đã được kéo
+                            const newIndex = evt.newIndex; // vị trí mới của phần tử
+                            const oldIndex = evt.oldIndex; // vị trí cũ của phần tử
+
+                            // Di chuyển bài hát trong mảng songs
+                            const movedSong = app.songs.splice(oldIndex, 1)[0];
+                            app.songs.splice(newIndex, 0, movedSong);
+
+                            // Cập nhật lại currentIndex nếu bài hát hiện tại bị di chuyển
+                            if (app.currentIndex === oldIndex) {
+                                app.currentIndex = newIndex;
+                            } else if (
+                                oldIndex < app.currentIndex &&
+                                newIndex >= app.currentIndex
+                            ) {
+                                app.currentIndex--;
+                            } else if (
+                                oldIndex > app.currentIndex &&
+                                newIndex <= app.currentIndex
+                            ) {
+                                app.currentIndex++;
+                            }
+
+                            app.render();
+                            app.loadCurrentSong();
+                        },
+                        fallbackOnBody: true,
+                        touchStartThreshold: 10,
+                        supportPointer: true,
+                        scroll: true,
+                        scrollSensitivity: 100,
+                        scrollSpeed: 20,
+                    });
+
+                    // Khi người dùng nhấp vào nút, cuộn lên đầu trang với hiệu ứng mượt mà
+                    backToTopBtn.onclick = function () {
+                        window.scrollTo({
+                            top: 0,
+                            behavior: "smooth",
+                        });
+                    };
 
                     // Xử lý CD quay / dừng
                     const cdThumbAnimate = cdThumb.animate(
